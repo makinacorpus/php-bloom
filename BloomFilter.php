@@ -23,6 +23,7 @@ final class BloomFilter implements \Serializable
     private $filter;
     private $hashAlgos;
     private $empty = true;
+    private $useBcMath = false;
 
     /**
      * Default constructor
@@ -50,6 +51,13 @@ final class BloomFilter implements \Serializable
 
         if ($this->hashes > $this->numHashFunctionsAvailable($this->hashAlgos)) {
             throw new \LogicException("Can't initialize filter with available hash functions");
+        }
+
+        if (!function_exists('gmp_init')) {
+            if (!function_exists('bcmod')) {
+                throw new \LogicException("Can't initialize filter if you don't have any of the 'gmp' or 'bcmath' extension (gmp is faster)");
+            }
+            $this->useBcMath = true;
         }
     }
 
@@ -85,8 +93,12 @@ final class BloomFilter implements \Serializable
 
         foreach ($this->hashAlgos as $algo) {
             foreach (unpack('P*', hash($algo, $element, true)) as $hash) {
-                $hash = gmp_init(sprintf("%u", $hash));
-                $hashes[] = ($hash % $this->space);
+                if ($this->useBcMath) {
+                    $hashes[] = bcmod(sprintf("%u", $hash), $this->space);
+                } else {
+                    $hash = gmp_init(sprintf("%u", $hash));
+                    $hashes[] = ($hash % $this->space);
+                }
                 if (count($hashes) >= $this->hashes) {
                     break 2;
                 }
