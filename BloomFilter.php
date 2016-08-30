@@ -8,58 +8,54 @@ namespace MakinaCorpus\Bloom;
  * All credits to the original author; only a few code style changed a minor
  * performance optimizations have been done.
  *
- * @todo for storage purpose, we need to have the hash algorithm usage
- *   predictible, so we may use the value on potentially differerent
- *   PHP environments
+ * This implementation is serializable, you may store it as-is and load it
+ * without any problems.
  *
  * @author Sherif Ramadan
  * @link http://phpden.info/Bloom-filters-in-PHP
  */
-final class BloomFilter
+final class BloomFilter implements \Serializable
 {
     private $maxSize;
     private $probability;
     private $space;
     private $hashes;
     private $filter;
+    private $hashAlgos;
     private $empty = true;
 
     /**
      * Default constructor
      *
-     * @param string $value
-     *   Any already computed value, this value MUST have been computed using
-     *   the same PHP environment (same hash functions), the same $maxSize and
-     *   the same $probability parameters values.
      * @param int $maxSize
      *   Maximum number of elements you wish to store.
      * @param real $probability
      *   False positive probability you wish to achieve.
      */
-    public function __construct($value = null, $maxSize = 64, $probability = 0.001)
+    public function __construct($maxSize = 64, $probability = 0.001)
     {
-        $this->maxSize      = $maxSize;
-        $this->probability  = $probability;
-        $this->space        = $this->calculateSpace($this->maxSize, $this->probability);
-        $this->hashes       = $this->calculateHashFunctions($this->maxSize, $this->space);
+        $this->maxSize = $maxSize;
+        $this->probability = $probability;
 
-        if ($this->hashes > $this->numHashFunctionsAvailable()) {
+        $this->init();
+
+        $this->filter = str_repeat("\0", ceil($this->space / 8));
+    }
+
+    private function init()
+    {
+        $this->space      = $this->calculateSpace($this->maxSize, $this->probability);
+        $this->hashes     = $this->calculateHashFunctions($this->maxSize, $this->space);
+        $this->hashAlgos  = $this->getHashAlgos();
+
+        if ($this->hashes > $this->numHashFunctionsAvailable($this->hashAlgos)) {
             throw new \LogicException("Can't initialize filter with available hash functions");
         }
+    }
 
-        $size = ceil($this->space / 8);
-        $this->filter = str_repeat("\0", $size);
-
-        if (null !== $value && is_string($value)) {
-
-            $current = strlen($value);
-            if ($size < $current) {
-                throw new \InvalidArgumentException("given filter value is too long for the current filter");
-            }
-
-            $this->filter = substr_replace($this->filter, $value, 0, $current);
-            $this->empty = false;
-        }
+    private function getHashAlgos()
+    {
+        return hash_algos();
     }
 
     private function calculateSpace($maxSize, $probability)
@@ -72,11 +68,11 @@ final class BloomFilter
         return (int)ceil($space / $maxSize * log(2));
     }
 
-    private function numHashFunctionsAvailable()
+    private function numHashFunctionsAvailable($hashAlgos)
     {
         $num = 0;
 
-        foreach (hash_algos() as $algo) {
+        foreach ($hashAlgos as $algo) {
             $num += count(unpack('J*', hash($algo, 'bloom', true)));
         }
 
@@ -87,7 +83,7 @@ final class BloomFilter
     {
         $hashes = [];
 
-        foreach (hash_algos() as $algo) {
+        foreach ($this->hashAlgos as $algo) {
             foreach (unpack('P*', hash($algo, $element, true)) as $hash) {
                 $hash = gmp_init(sprintf("%u", $hash));
                 $hashes[] = ($hash % $this->space);
@@ -164,12 +160,22 @@ final class BloomFilter
     }
 
     /**
-     * Get raw filter value, for storage
-     *
-     * @return string
+     * {@inheritdoc}
      */
-    public function __toString()
+    public function serialize()
     {
-        return $this->filter;
+        return implode(',', [$this->maxSize, $this->probability, base64_encode($this->filter)]);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function unserialize($serialized)
+    {
+        list($this->maxSize, $this->probability, $this->filter) = explode(',', $serialized, 3);
+        $this->filter = base64_decode($this->filter);
+
+        $this->init();
+        $this->empty = false;
     }
 }

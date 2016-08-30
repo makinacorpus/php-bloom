@@ -31,7 +31,7 @@ class BloomFitlerTest extends \PHPUnit_Framework_TestCase
         $strings      = [];
         $maxSize      = (float)getenv("BLOOM_SIZE");
         $probability  = (float)getenv("BLOOM_PROBABILITY");
-        $filter       = new BloomFilter(null, $maxSize, $probability);
+        $filter       = new BloomFilter($maxSize, $probability);
 
         for ($i = 0; $i < $maxSize; ++$i) {
             $strings[$this->generateRandomString()] = rand(0, 1);
@@ -49,16 +49,12 @@ class BloomFitlerTest extends \PHPUnit_Framework_TestCase
 
         // Test everything
         foreach ($strings as $string => $isIn) {
-
             $result = $filter->check($string);
-
             if ($isIn) {
                 ++$countIn;
-
                 if (!$result) {
                     $this->fail("False negative is not possible");
                 }
-
             } else {
                 if ($result) {
                     ++$countMiss;
@@ -67,7 +63,30 @@ class BloomFitlerTest extends \PHPUnit_Framework_TestCase
         }
 
         echo "\nmax size: ", $maxSize, "\nin: ", $countIn, "\nmiss: ", $countMiss, "\n";
+        $this->assertTrue($countMiss / $maxSize < $probability);
 
+        $filter = unserialize(serialize($filter));
+
+        $countIn = 0;
+        $countMiss = 0;
+
+        // Same test after unserialization
+        foreach ($strings as $string => $isIn) {
+            $result = $filter->check($string);
+            if ($isIn) {
+                ++$countIn;
+                if (!$result) {
+                    $this->fail("False negative is not possible");
+                }
+            } else {
+                if ($result) {
+                    ++$countMiss;
+                }
+            }
+        }
+
+
+        echo "\nafter unserialize, max size: ", $maxSize, "\nin: ", $countIn, "\nmiss: ", $countMiss, "\n";
         $this->assertTrue($countMiss / $maxSize < $probability);
     }
 }
