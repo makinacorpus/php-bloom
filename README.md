@@ -30,7 +30,7 @@ $maxSize = 10000;
 $filter = new \MakinaCorpus\Bloom\BloomFilter();
 
 // You may add as many elements as you wish, elements can be any type, really,
-// if not scalar they will be serialized priori to being hashed.
+// if not scalar they will be serialized prior to being hashed.
 $filter->set('some_string');
 $filter->set(123456);
 $filter->set(['some' => 'array']);
