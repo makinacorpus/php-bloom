@@ -45,11 +45,11 @@ if ($filter->check('some_value')) {
 
 ## Notes
 
-Please read carefuly the original author's blog post, since it explains
+Please carefully read the original author's blog post, since it explains
 everything you need to know about Bloom filters: http://phpden.info/Bloom-filters-in-PHP
 
 Please also use it wisely, the hashing algorithms are quite fast, but if you
-do use it too much, it will impact negatively your CPU usage.
+do use it too much, it will impact negatively on your CPU usage.
 
-There is numerous competitive other implementations, you may use whichever
+There are numerous other competitive implementations, you may use whichever
 seems the best for you, take a look around before choosing.
