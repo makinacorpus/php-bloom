@@ -68,7 +68,7 @@ final class BloomFilter implements \Serializable
 
     private function calculateSpace($maxSize, $probability)
     {
-        return (int)ceil(($maxSize * (log($probability)) / (log(2) ** 2)) * -1);
+        return (int)ceil(($maxSize * (log($probability)) / (pow(log(2), 2))) * -1);
     }
 
     private function calculateHashFunctions($maxSize, $space)
@@ -153,7 +153,7 @@ final class BloomFilter implements \Serializable
             $offset = (int)floor($hash / 8);
             $bit = (int)($hash % 8);
 
-            if (!(ord($this->filter[$offset]) & (2 ** $bit))) {
+            if (!(ord($this->filter[$offset]) & (pow(2, $bit)))) {
                 return false;
             }
         }
