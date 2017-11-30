@@ -1,5 +1,7 @@
 # PHP Bloom filter
 
+[![Build Status](https://travis-ci.org/makinacorpus/php-bloom.svg?branch=master)](https://travis-ci.org/makinacorpus/php-bloom)
+
 This is a simple PHP Bloom filter implementation using Sherif Ramadan's
 implementation.
 
